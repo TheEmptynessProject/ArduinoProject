@@ -1,4 +1,3 @@
-//Import libraries needed
 #include <SPI.h>
 #include <SoftwareSerial.h>
 #include <MFRC522.h>
@@ -26,8 +25,8 @@ String array[20] = {
 void setup() {
   Serial.begin(9600);
   pinMode(7, OUTPUT);
-  pinMode(0, OUTPUT);//add
-  pinMode(8, OUTPUT);//remove
+  pinMode(0, INPUT);//add
+  pinMode(8, INPUT);//remove
   servo.attach(4);
   pinMode(5, OUTPUT); //red led
   pinMode(6, OUTPUT); //green led
@@ -45,70 +44,51 @@ void loop() {
   int abc = 3; //how many uids in array
   digitalWrite(5, LOW);
   digitalWrite(6, LOW);
-  Serial.print("ADMIN\n");
-  Serial.print("1. Add to access\n");
-  Serial.print("2. Remove access\n");
-  Serial.print("3. Print list\n");
-  Serial.print("4. Test\n");
-  while (Serial.available() == 0) {}
-  int choice = Serial.parseInt();
-
-  switch (choice) {
-  case 1:
-    xxx = readCard();
-    array[abc] = xxx;
-    abc++;
-    break;
-  case 2:
-    xxx = readCard();
-    for (int i = 0; i < (sizeof(array) / sizeof(String)); i++) { //
-      if (xxx == array[i]) {
-        array[i] = "";
-      }
-    }
-    abc--;
-    break;
-  case 3:
-    for (int i = 0; i < 20; i++) {
-      Serial.println(array[i]);
-    }
-    break;
-  case 4:
     xxx = readCard();
     int a = 0;
-    for (int i = 0; i < (sizeof(array) / sizeof(String)); i++) {
+    for (int i = 0; i < abc; i++) {
       if (xxx == array[i]) {
-        access();
+        access(xxx);
         break;
       } else {
         a++;
       }
     }
     if (a == abc) {
-      denied();
-      break;
+      denied(xxx);
     }
-    break;
-  }
 
 }
 String readCard() {
   String bruh;
   while (!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
   }
+  if(digitalRead(0)){
+    Serial.println("Removed");
+  } else if (digitalRead(8)){
+    Serial.println("Added");
+  } else {
   for (byte i = 0; i < mfrc522.uid.size; i++) {
     bruh.concat(String(mfrc522.uid.uidByte[i] < 0x10 ? " 0" : " "));
     bruh.concat(String(mfrc522.uid.uidByte[i], HEX));
   }
   bruh.toUpperCase();
   bruh.trim();
+  }
   return bruh;
 }
-void access() {
+void access(String auga) {
   lcd.clear();
   lcd.print("Access");
   lcd.setCursor(0, 1);
   lcd.print("Granted");
+
+  Serial.print("Access Granted");
+  Serial.print(",");
+  Serial.print("UID:");
+  Serial.print(auga);
+  Serial.println();
+
   digitalWrite(6, HIGH);
   tone(7, 10000);
   delay(50);
@@ -122,11 +102,18 @@ void access() {
   noTone(7);
 }
 
-void denied() {
+void denied(String auga) {
   lcd.clear();
   lcd.print("Access");
   lcd.setCursor(0, 1);
   lcd.print("Denied");
+
+Serial.print("Access Denied");
+  Serial.print(",");
+  Serial.print("UID:");
+  Serial.print(auga);
+  Serial.println();
+
   digitalWrite(5, HIGH);
   tone(7, 500);
   delay(100);
